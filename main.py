@@ -14,7 +14,7 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import *
 import hillshade as hill
 
-IMAGE_PATH = 'dtm_large.tif'  # Replace with path to image
+IMAGE_PATH = 'dtm_toit.tif'  # Replace with path to image
 
 class UiLoader(QUiLoader):
     """
