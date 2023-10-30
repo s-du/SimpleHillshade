@@ -306,19 +306,38 @@ class ImageViewer(QMainWindow):
         self.dial.valueChanged.connect(self.update_image)
         self.comboBox.currentIndexChanged.connect(self.update_image)
 
+        # normalize checkbox
+        self.checkBox.clicked.connect(self.update_image)
+
         # Compute gradient
         gradient_y, gradient_x = np.gradient(image)
         self.magnitude = np.sqrt(gradient_x ** 2 + gradient_y ** 2)
         self.threshold = np.percentile(self.magnitude, 85)
         self.max_gradient_zones = self.magnitude > self.threshold
 
+        self.update_hillshade()
         self.update_image()
 
 
+    def update_min_max(self):
+        # Create the sliders and their labels
+        self.slider_min.setMinimum(int(np.nanmin(self.image) * SCALE_FACTOR))
+        self.slider_min.setMaximum(int(np.nanmax(self.image) * SCALE_FACTOR))
+        self.slider_min.setValue(int(np.nanmin(self.image) * SCALE_FACTOR))
+        self.slider_min.valueChanged.connect(self.update_image)
+
+        self.slider_max.setMinimum(int(np.nanmin(self.image) * SCALE_FACTOR))
+        self.slider_max.setMaximum(int(np.nanmax(self.image) * SCALE_FACTOR))
+        self.slider_min.setValue(int(np.nanmax(self.image) * SCALE_FACTOR))
+        self.slider_max.valueChanged.connect(self.update_image)
+
     def update_hillshade(self):
         self.altitude = self.slider_alti.value()
+        self.alti_label.setText(f"Current Altitude Value: {self.altitude}")
         self.azimuth = self.slider_azi.value()
+        self.azi_label.setText(f"Current Azimuth Value: {self.azimuth}")
         self.image = hill.compute_hillshade_for_grid(self.height, altitude=self.altitude, azimuth=self.azimuth)
+        self.update_min_max()
         self.update_image()
 
     def update_image(self):
@@ -332,7 +351,9 @@ class ImageViewer(QMainWindow):
         self.min_value_label.setText(f"Current Min Value: {vmin:.4f}")
         self.max_value_label.setText(f"Current Max Value: {vmax:.4f}")
 
-        pix = hill.export_results(self.image, vmin, vmax, color_choice,color_factor, optimize_vrange=False)
+        eq = self.checkBox.isChecked()
+
+        pix = hill.export_results(self.image, vmin, vmax, color_choice,color_factor, equalize = eq)
         self.viewer.setPhoto(numpy_array_to_qpixmap(pix))
 
 
@@ -348,14 +369,10 @@ if __name__ == '__main__':
     cellsize = 1
     z_factor = 1
 
-    print("start")
     hillshade_values = hill.compute_hillshade_for_grid(height_data)
-    print("stop")
 
     app = QApplication(sys.argv)
-    print('ok')
     viewer = ImageViewer(hillshade_values, height_data)
-    print('ok')
     viewer.show()
 
     sys.exit(app.exec())

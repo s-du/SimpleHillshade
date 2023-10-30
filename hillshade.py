@@ -103,7 +103,7 @@ def compute_hillshade_for_grid(elevation_grid, cellsize=1, z_factor=1, altitude=
 
     return hillshade_matrix
 
-def export_results(visibility, vmin, vmax, color_choice, color_factor, standardize=False, optimize_vrange=True):
+def export_results(visibility, vmin, vmax, color_choice, color_factor, equalize = False):
     def adjust_color(color, color_factor, h_color):
         r, g, b = color
 
@@ -125,20 +125,19 @@ def export_results(visibility, vmin, vmax, color_choice, color_factor, standardi
             return r, g, min(b,1)  # Ensure doesn't exceed 1
 
 
-    if standardize:
-        vmin = np.percentile(visibility, 1)  # 1st percentile
-        vmax = np.percentile(visibility, 99)
-
     # Normalize data
     normalized_data = (visibility - vmin) / (vmax - vmin)
 
-    grayscale_img = (normalized_data * 255).astype(np.uint8)
+    if equalize:
 
-    # Apply histogram equalization
-    #equalized_img = cv2.equalizeHist(grayscale_img)
+        grayscale_img = (normalized_data * 255).astype(np.uint8)
 
-    # Convert back to float range [0, 1] for coloring
-    #equalized_data = equalized_img.astype(np.float32) / 255.0
+        # Apply histogram equalization
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        equalized_img = clahe.apply(grayscale_img)
+
+        # Convert back to float range [0, 1] for coloring
+        equalized_data = equalized_img.astype(np.float32) / 255.0
 
 
     # Original colors
@@ -152,7 +151,10 @@ def export_results(visibility, vmin, vmax, color_choice, color_factor, standardi
     custom_cmap = mcol.LinearSegmentedColormap.from_list('my_colormap', colors_adjusted, N=256)
 
     # Apply a colormap from matplotlib (e.g., 'viridis')
-    colored_data = custom_cmap(normalized_data)
+    if equalize:
+        colored_data = custom_cmap(equalized_data)
+    else:
+        colored_data = custom_cmap(normalized_data)
 
     # Convert the RGB data to uint8 [0, 255]
     img = (colored_data[:, :, :3] * 255).astype(np.uint8)
