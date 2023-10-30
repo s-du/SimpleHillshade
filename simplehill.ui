@@ -35,7 +35,7 @@
            <item>
             <widget class="QLabel" name="min_value_label">
              <property name="text">
-              <string>Min: 0</string>
+              <string>Min: </string>
              </property>
             </widget>
            </item>
@@ -59,6 +59,9 @@
             </widget>
            </item>
            <item>
+            <widget class="QLineEdit" name="lineEdit_min"/>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_3">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -78,7 +81,7 @@
            <item>
             <widget class="QLabel" name="max_value_label">
              <property name="text">
-              <string>Max: 0</string>
+              <string>Max: </string>
              </property>
             </widget>
            </item>
@@ -102,6 +105,9 @@
             </widget>
            </item>
            <item>
+            <widget class="QLineEdit" name="lineEdit_max"/>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_4">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -121,7 +127,7 @@
            <item>
             <widget class="QLabel" name="alti_label">
              <property name="text">
-              <string>Altitude: 0</string>
+              <string>Altitude: </string>
              </property>
             </widget>
            </item>
@@ -145,6 +151,9 @@
             </widget>
            </item>
            <item>
+            <widget class="QLineEdit" name="lineEdit_alti"/>
+           </item>
+           <item>
             <spacer name="horizontalSpacer_5">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -164,7 +173,7 @@
            <item>
             <widget class="QLabel" name="azi_label">
              <property name="text">
-              <string>Azimuth: 0</string>
+              <string>Azimuth: </string>
              </property>
             </widget>
            </item>
@@ -186,6 +195,9 @@
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_azi"/>
            </item>
            <item>
             <spacer name="horizontalSpacer_7">

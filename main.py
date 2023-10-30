@@ -14,7 +14,6 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import *
 import hillshade as hill
 
-SCALE_FACTOR = 100
 IMAGE_PATH = 'dtm.tif'  # Replace with path to image
 
 class UiLoader(QUiLoader):
@@ -44,7 +43,6 @@ class UiLoader(QUiLoader):
 
         ``parent`` is the parent object of this loader.
         """
-        print('init')
         QUiLoader.__init__(self, baseinstance)
         self.baseinstance = baseinstance
         self.customWidgets = customWidgets
@@ -118,7 +116,6 @@ def loadUi(uifile, baseinstance=None, customWidgets=None,
     Return ``baseinstance``, if ``baseinstance`` is not ``None``.  Otherwise
     return the newly created instance of the user interface.
     """
-    print('yeah')
     loader = UiLoader(baseinstance, customWidgets)
 
 
@@ -283,14 +280,14 @@ class ImageViewer(QMainWindow):
         self.horizontalLayout_6.addWidget(self.viewer)
 
         # Create the sliders and their labels
-        self.slider_min.setMinimum(int(np.nanmin(self.image) * SCALE_FACTOR))
-        self.slider_min.setMaximum(int(np.nanmax(self.image)  * SCALE_FACTOR))
-        self.slider_min.setValue(int(np.nanmin(self.image) * SCALE_FACTOR))
+        self.slider_min.setMinimum(int(np.nanmin(self.image)))
+        self.slider_min.setMaximum(int(np.nanmax(self.image)))
+        self.slider_min.setValue(int(np.nanmin(self.image)))
         self.slider_min.valueChanged.connect(self.update_image)
 
-        self.slider_max.setMinimum(int(np.nanmin(self.image)  * SCALE_FACTOR))
-        self.slider_max.setMaximum(int(np.nanmax(self.image)  * SCALE_FACTOR))
-        self.slider_min.setValue(int(np.nanmax(self.image) * SCALE_FACTOR))
+        self.slider_max.setMinimum(int(np.nanmin(self.image)))
+        self.slider_max.setMaximum(int(np.nanmax(self.image)))
+        self.slider_min.setValue(int(np.nanmax(self.image)))
         self.slider_max.valueChanged.connect(self.update_image)
 
         self.slider_alti.setMinimum(0)
@@ -309,6 +306,33 @@ class ImageViewer(QMainWindow):
         # normalize checkbox
         self.checkBox.clicked.connect(self.update_image)
 
+        self.sliders = {
+            'min': self.findChild(QSlider, 'slider_min'),
+            'max': self.findChild(QSlider, 'slider_max'),
+            'alti': self.findChild(QSlider, 'slider_alti'),
+            'azi': self.findChild(QSlider, 'slider_azi')
+        }
+
+        self.line_edits = {
+            'min': self.findChild(QLineEdit, 'lineEdit_min'),
+            'max': self.findChild(QLineEdit, 'lineEdit_max'),
+            'alti': self.findChild(QLineEdit, 'lineEdit_alti'),
+            'azi': self.findChild(QLineEdit, 'lineEdit_azi')
+        }
+
+        # Define the valid ranges for each slider
+        self.slider_ranges = {
+            'min': (0, 255),
+            'max': (0, 255),
+            'alti': (0, 90),
+            'azi': (0, 360)
+        }
+
+        # Connect the signals and slots
+        for name, slider in self.sliders.items():
+            slider.valueChanged.connect(lambda value, name=name: self.update_line_edit(value, name))
+            self.line_edits[name].editingFinished.connect(lambda name=name: self.update_slider_from_line_edit(name))
+
         # Compute gradient
         gradient_y, gradient_x = np.gradient(image)
         self.magnitude = np.sqrt(gradient_x ** 2 + gradient_y ** 2)
@@ -318,38 +342,46 @@ class ImageViewer(QMainWindow):
         self.update_hillshade()
         self.update_image()
 
+    def update_line_edit(self, value, name):
+        self.line_edits[name].setText(str(value))
 
     def update_min_max(self):
         # Create the sliders and their labels
-        self.slider_min.setMinimum(int(np.nanmin(self.image) * SCALE_FACTOR))
-        self.slider_min.setMaximum(int(np.nanmax(self.image) * SCALE_FACTOR))
-        self.slider_min.setValue(int(np.nanmin(self.image) * SCALE_FACTOR))
+        self.slider_min.setMinimum(int(np.nanmin(self.image)))
+        self.slider_min.setMaximum(int(np.nanmax(self.image)))
+        self.slider_min.setValue(int(np.nanmin(self.image)))
         self.slider_min.valueChanged.connect(self.update_image)
 
-        self.slider_max.setMinimum(int(np.nanmin(self.image) * SCALE_FACTOR))
-        self.slider_max.setMaximum(int(np.nanmax(self.image) * SCALE_FACTOR))
-        self.slider_min.setValue(int(np.nanmax(self.image) * SCALE_FACTOR))
+        self.slider_max.setMinimum(int(np.nanmin(self.image)))
+        self.slider_max.setMaximum(int(np.nanmax(self.image)))
+        self.slider_max.setValue(int(np.nanmax(self.image)))
         self.slider_max.valueChanged.connect(self.update_image)
 
     def update_hillshade(self):
         self.altitude = self.slider_alti.value()
-        self.alti_label.setText(f"Current Altitude Value: {self.altitude}")
         self.azimuth = self.slider_azi.value()
-        self.azi_label.setText(f"Current Azimuth Value: {self.azimuth}")
         self.image = hill.compute_hillshade_for_grid(self.height, altitude=self.altitude, azimuth=self.azimuth)
         self.update_min_max()
         self.update_image()
 
+
+    def update_slider_from_line_edit(self, name):
+        text = self.line_edits[name].text()
+        min_val, max_val = self.slider_ranges[name]
+        if text.isdigit():
+            value = int(text)
+            if min_val <= value <= max_val:
+                self.sliders[name].setValue(value)
+            else:
+                # If the value is out of range, reset the line edit to the slider's current value
+                self.line_edits[name].setText(str(self.sliders[name].value()))
+
     def update_image(self):
         # Get the min and max values from the sliders and rescale them
-        vmin = self.slider_min.value() / SCALE_FACTOR
-        vmax = self.slider_max.value() / SCALE_FACTOR
+        vmin = self.slider_min.value()
+        vmax = self.slider_max.value()
         color_factor = self.dial.value() / 100
         color_choice = self.comboBox.currentIndex()
-
-        # Update the labels with the current slider values
-        self.min_value_label.setText(f"Current Min Value: {vmin:.4f}")
-        self.max_value_label.setText(f"Current Max Value: {vmax:.4f}")
 
         eq = self.checkBox.isChecked()
 

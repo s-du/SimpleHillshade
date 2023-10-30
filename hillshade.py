@@ -128,20 +128,8 @@ def export_results(visibility, vmin, vmax, color_choice, color_factor, equalize 
     # Normalize data
     normalized_data = (visibility - vmin) / (vmax - vmin)
 
-    if equalize:
-
-        grayscale_img = (normalized_data * 255).astype(np.uint8)
-
-        # Apply histogram equalization
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        equalized_img = clahe.apply(grayscale_img)
-
-        # Convert back to float range [0, 1] for coloring
-        equalized_data = equalized_img.astype(np.float32) / 255.0
-
-
     # Original colors
-    colors = [(255, 255, 255),(50, 50, 50)]
+    colors = [(0, 0, 0),(255, 255, 255)]
     colors_scaled = [np.array(x).astype(np.float32) / 255 for x in colors]
 
     # Adjust colors
@@ -151,15 +139,37 @@ def export_results(visibility, vmin, vmax, color_choice, color_factor, equalize 
     custom_cmap = mcol.LinearSegmentedColormap.from_list('my_colormap', colors_adjusted, N=256)
 
     # Apply a colormap from matplotlib (e.g., 'viridis')
-    if equalize:
-        colored_data = custom_cmap(equalized_data)
-    else:
-        colored_data = custom_cmap(normalized_data)
+    colored_data = custom_cmap(normalized_data)
 
     # Convert the RGB data to uint8 [0, 255]
     img = (colored_data[:, :, :3] * 255).astype(np.uint8)
+
+    if equalize:
+        img = apply_clahe_color(img)
 
     # Convert RGB to BGR for OpenCV
     img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
     return img_bgr
+
+
+def apply_clahe_color(img, clip_limit=2.0, tile_grid_size=(8, 8)):
+    # Convert the image to LAB color space
+    lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+
+    # Split the LAB image into L, A and B channels
+    l_channel, a_channel, b_channel = cv2.split(lab)
+
+    # Define the CLAHE algorithm
+    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+
+    # Apply CLAHE to L channel
+    clahe_img = clahe.apply(l_channel)
+
+    # Merge the CLAHE enhanced L channel with the original A and B channel
+    merged_channels = cv2.merge([clahe_img, a_channel, b_channel])
+
+    # Convert back to RGB color space
+    final_img = cv2.cvtColor(merged_channels, cv2.COLOR_LAB2RGB)
+
+    return final_img
