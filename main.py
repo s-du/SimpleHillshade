@@ -15,7 +15,7 @@ from PySide6.QtGui import *
 import hillshade as hill
 
 SCALE_FACTOR = 100
-IMAGE_PATH = 'raster.tif'  # Replace with path to image
+IMAGE_PATH = 'dtm.tif'  # Replace with path to image
 
 class UiLoader(QUiLoader):
     """
@@ -44,7 +44,7 @@ class UiLoader(QUiLoader):
 
         ``parent`` is the parent object of this loader.
         """
-
+        print('init')
         QUiLoader.__init__(self, baseinstance)
         self.baseinstance = baseinstance
         self.customWidgets = customWidgets
@@ -64,6 +64,7 @@ class UiLoader(QUiLoader):
             if class_name in self.availableWidgets():
                 # create a new widget for child widgets
                 widget = QUiLoader.createWidget(self, class_name, parent, name)
+                print(class_name)
 
             else:
                 # if not in the list of availableWidgets, must be a custom widget
@@ -84,7 +85,7 @@ class UiLoader(QUiLoader):
 
                 # this outputs the various widget names, e.g.
                 # sampleGraphicsView, dockWidget, samplesTableView etc.
-                # print(name)
+                print(name)
 
             return widget
 
@@ -117,8 +118,9 @@ def loadUi(uifile, baseinstance=None, customWidgets=None,
     Return ``baseinstance``, if ``baseinstance`` is not ``None``.  Otherwise
     return the newly created instance of the user interface.
     """
-
+    print('yeah')
     loader = UiLoader(baseinstance, customWidgets)
+
 
     if workingDirectory is not None:
         loader.setWorkingDirectory(workingDirectory)
@@ -260,11 +262,12 @@ class ImageViewer(QMainWindow):
 
         # load the ui
         basepath = os.path.dirname(__file__)
-        basename = 'simplepcv'
+        basename = 'simplehill'
         uifile = os.path.join(basepath, '%s.ui' % basename)
         print(uifile)
         loadUi(uifile, self)
 
+        print('loaded')
         self.setWindowTitle('Create Hillshade Renders')
 
         self.image = image
@@ -316,6 +319,7 @@ class ImageViewer(QMainWindow):
         self.altitude = self.slider_alti.value()
         self.azimuth = self.slider_azi.value()
         self.image = hill.compute_hillshade_for_grid(self.height, altitude=self.altitude, azimuth=self.azimuth)
+        self.update_image()
 
     def update_image(self):
         # Get the min and max values from the sliders and rescale them
@@ -344,10 +348,14 @@ if __name__ == '__main__':
     cellsize = 1
     z_factor = 1
 
+    print("start")
     hillshade_values = hill.compute_hillshade_for_grid(height_data)
+    print("stop")
 
     app = QApplication(sys.argv)
+    print('ok')
     viewer = ImageViewer(hillshade_values, height_data)
+    print('ok')
     viewer.show()
 
     sys.exit(app.exec())

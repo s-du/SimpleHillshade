@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.colors as mcol
+import cv2
 
 # Constants
 PI = np.pi
@@ -100,3 +102,62 @@ def compute_hillshade_for_grid(elevation_grid, cellsize=1, z_factor=1, altitude=
             hillshade_matrix[r, c] = hillshade_value
 
     return hillshade_matrix
+
+def export_results(visibility, vmin, vmax, color_choice, color_factor, standardize=False, optimize_vrange=True):
+    def adjust_color(color, color_factor, h_color):
+        r, g, b = color
+
+        # Calculate grayscale intensity (average of RGB values)
+        intensity = (r + g + b) / 3.0
+
+        # Adjust the coloring factor based on intensity
+        adjusted_color_factor = color_factor * (1 - intensity)
+
+        # Apply the adjusted coloring factor to the blue component
+        if h_color == 0:
+            r += adjusted_color_factor * (1 - r)  # Increase blue but ensure it doesn't exceed 1
+            return min(r, 1), g, b  # Ensure doesn't exceed 1
+        elif h_color == 1:
+            g += adjusted_color_factor * (1 - g)  # Increase blue but ensure it doesn't exceed 1
+            return r, min(g,1), b  # Ensure doesn't exceed 1
+        elif h_color == 2:
+            b += adjusted_color_factor * (1 - b)  # Increase blue but ensure it doesn't exceed 1
+            return r, g, min(b,1)  # Ensure doesn't exceed 1
+
+
+    if standardize:
+        vmin = np.percentile(visibility, 1)  # 1st percentile
+        vmax = np.percentile(visibility, 99)
+
+    # Normalize data
+    normalized_data = (visibility - vmin) / (vmax - vmin)
+
+    grayscale_img = (normalized_data * 255).astype(np.uint8)
+
+    # Apply histogram equalization
+    #equalized_img = cv2.equalizeHist(grayscale_img)
+
+    # Convert back to float range [0, 1] for coloring
+    #equalized_data = equalized_img.astype(np.float32) / 255.0
+
+
+    # Original colors
+    colors = [(255, 255, 255),(50, 50, 50)]
+    colors_scaled = [np.array(x).astype(np.float32) / 255 for x in colors]
+
+    # Adjust colors
+    colors_adjusted = [adjust_color(color, color_factor, color_choice) for color in colors_scaled]
+
+    # Create colormap
+    custom_cmap = mcol.LinearSegmentedColormap.from_list('my_colormap', colors_adjusted, N=256)
+
+    # Apply a colormap from matplotlib (e.g., 'viridis')
+    colored_data = custom_cmap(normalized_data)
+
+    # Convert the RGB data to uint8 [0, 255]
+    img = (colored_data[:, :, :3] * 255).astype(np.uint8)
+
+    # Convert RGB to BGR for OpenCV
+    img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+    return img_bgr
