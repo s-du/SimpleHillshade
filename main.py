@@ -14,7 +14,7 @@ from PySide6.QtUiTools import QUiLoader
 from PySide6.QtGui import *
 import hillshade as hill
 
-IMAGE_PATH = 'dtm.tif'  # Replace with path to image
+IMAGE_PATH = 'dtm_large.tif'  # Replace with path to image
 
 class UiLoader(QUiLoader):
     """
@@ -360,7 +360,7 @@ class ImageViewer(QMainWindow):
     def update_hillshade(self):
         self.altitude = self.slider_alti.value()
         self.azimuth = self.slider_azi.value()
-        self.image = hill.compute_hillshade_for_grid(self.height, altitude=self.altitude, azimuth=self.azimuth)
+        self.image = hill.optimized_compute_hillshade_for_grid(self.height, altitude=self.altitude, azimuth=self.azimuth)
         self.update_min_max()
         self.update_image()
 
@@ -401,7 +401,7 @@ if __name__ == '__main__':
     cellsize = 1
     z_factor = 1
 
-    hillshade_values = hill.compute_hillshade_for_grid(height_data)
+    hillshade_values = hill.optimized_compute_hillshade_for_grid(height_data)
 
     app = QApplication(sys.argv)
     viewer = ImageViewer(hillshade_values, height_data)
